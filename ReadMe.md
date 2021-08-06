@@ -10,16 +10,16 @@ go get -u github.com/TechMaster/eris
 ```
 
 ### 2. Tạo eris Error
-```go
-func Query(query string) error {
-	err := eris.New("query string is bad")  // mặc định là Error
-	return err
-}
 
+#### 2.1 Tạo một lỗi cấp độ Error
+```go
+//Tạo một lỗi, thêm HTTP status code, trrar
 func Bar() error {
-	return eris.Warning("Không tìm thấy bản ghi trong CSDL").StatusCode(404)
+	return eris.New("Không tìm thấy bản ghi trong CSDL").StatusCode(404).EnableJSON()
 }
 ```
+
+
 
 ### 3. Xử lý lỗi eris Error
 Kiểm tra lỗi trả về có kiểu là eris Error không
