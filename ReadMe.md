@@ -2,8 +2,66 @@
 
 **Whole source code of this package is credited to rotisserie/eris.**
 
-## Cường đã tạo ra những thay đổi sau đây
+## Hướng dẫn sử dụng
+### 1. Cài đặt package
+```
+go get -u github.com/TechMaster/eris
+```
 
+### 2. Tạo eris Error
+```go
+func Query(query string) error {
+	err := eris.New("query string is bad")  // mặc định là Error
+	return err
+}
+
+func Bar() error {
+	return eris.Warning("Không tìm thấy bản ghi trong CSDL").StatusCode(404)
+}
+```
+
+### 3. Xử lý lỗi eris Error
+Kiểm tra lỗi trả về có kiểu là eris Error không
+```go
+var statusCode = 500
+if e, ok := err.(*eris.Error); ok {
+	handleEris(e)
+	if e.Code > 0 { // Mặc định là 500, nếu e.Code > 0 thì gán vào statusCode
+		statusCode = e.Code
+	}
+}
+```
+
+Hàm xử lý lỗi Eris
+```go
+//Hàm chuyên xử lý Eris Error có Stack Trace
+func handleEris(err *eris.Error) {
+	formattedStr := eris.ToCustomString(err, eris.StringFormat{
+		Options: eris.FormatOptions{
+			InvertOutput: true, // flag that inverts the error output (wrap errors shown first)
+			WithTrace:    true, // flag that enables stack trace output
+			InvertTrace:  true, // flag that inverts the stack trace output (top of call stack shown first)
+			Skip:         3,    // Bỏ qua 3 dòng lệnh cuối cùng trong Stack
+		},
+		MsgStackSep:  "\n",  // separator between error messages and stack frame data
+		PreStackSep:  "\t",  // separator at the beginning of each stack frame
+		StackElemSep: " | ", // separator between elements of each stack frame
+		ErrorSep:     "\n",  // separator between each error in the chain
+	})
+
+	colorReset := string("\033[0m")
+	colorRed := string("\033[31m")
+	//Chỗ này log ra console
+	if err.IsPanic() {
+		fmt.Println(colorRed, formattedStr, colorReset)
+		//Lỗi Panic và Error nhất thiết phải ghi vào file !
+	} else {
+		fmt.Println(formattedStr)
+	}
+}
+```
+
+## Cường đã tạo ra những thay đổi sau đây
 ### 1. Đổi `rootError` thành `Error`
 ```go
 type rootError struct {
