@@ -71,12 +71,26 @@ func Panic(msg string) *Error {
 }
 
 func NewFrom(err error) *Error {
-	return New(err.Error())
+	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
+	return &Error{
+		global:  stack.isGlobal(),
+		msg:     err.Error(),
+		stack:   stack,
+		ErrType: ERROR,
+		JSON:    false,
+	}
 }
 
 //Bao lấy một error và thêm báo lỗi
 func NewFromMsg(err error, msg string) *Error {
-	return New(err.Error() + " : " + msg)
+	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
+	return &Error{
+		global:  stack.isGlobal(),
+		msg:     err.Error() + " : " + msg,
+		stack:   stack,
+		ErrType: ERROR,
+		JSON:    false,
+	}
 }
 
 func (error *Error) SetType(errType ErrorType) *Error {
