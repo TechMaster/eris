@@ -11,6 +11,27 @@ go get -u github.com/TechMaster/eris
 ```
 
 ### 2. Sử dụng eris
+Căn bản về xử lỗi. Một lỗi đầy đủ cần có:
+1. Mô tả lỗi
+2. Cấp độ lỗi: WARNING, ERROR, SYSERROR, PANIC quyết định cách thức dev báo cáo lỗi và log lỗi
+3. Stack Trace danh sách các hàm gọi nhau gây ra lỗi
+4. HTTP Status Code nếu là lỗi sẽ trả về cho REST Client
+5. Dữ liệu bổ trợ cho lỗi
+
+Những hành động của lập trình với lỗi:
+1. Báo cáo lỗi cho client: trả về trang báo lỗi dễ hiểu, thân thiện
+2. Trả về lỗi dạng JSON đối với REST API request
+3. In lỗi ra màn hình terminal, sẽ bị mất khi docker container nâng cấp
+4. Ghi lỗi vào file, bền vững hơn
+5. Bỏ qua lỗi nếu thấy cần (hãn hữu thôi nhé)
+6. Nâng cấp độ lỗi lên mức cao hơn
+7. Tạo ra một lỗi từ một lỗi khác để thêm thông báo, và dữ liệu bổ trợ
+
+Không xử lý lỗi đúng dẫn đến vấn đề gì?
+1. Người dùng không hiểu chuyện gì đã xảy ra
+2. Lập trình viên không dò vết (không xem được Stack Trace của lỗi), vì lỗi qua chung chung, khó hiểu
+3. Hệ thống sập vì lỗi không được xử lý đúng, chương trình chạy tiếp với biến rỗng (nil)
+
 #### 2.0 Tạo một cảnh báo WARNING
 Lỗi WARNING chỉ cần thông báo cho end user là được, không cần in ra console, không cần log ra file
 Ví dụ:
