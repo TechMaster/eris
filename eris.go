@@ -23,6 +23,7 @@ type Error struct {
 	stack   *stack    // root error stack trace
 	ErrType ErrorType //Loại lỗi. Cường bổ xung
 	Code    int       // HTTP Status code. Cường bổ xung
+	JSON    bool      // true if error will resonse as JSON for REST request, false to render error page at server side
 }
 
 func Warning(msg string) *Error {
@@ -32,6 +33,18 @@ func Warning(msg string) *Error {
 		msg:     msg,
 		stack:   stack,
 		ErrType: WARNING,
+		JSON:    false, //server side rendered error page not return JSON error
+	}
+}
+
+func New(msg string) *Error {
+	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
+	return &Error{
+		global:  stack.isGlobal(),
+		msg:     msg,
+		stack:   stack,
+		ErrType: ERROR,
+		JSON:    false,
 	}
 }
 
@@ -42,6 +55,7 @@ func SysError(msg string) *Error {
 		msg:     msg,
 		stack:   stack,
 		ErrType: SYSERROR,
+		JSON:    false,
 	}
 }
 
@@ -52,31 +66,36 @@ func Panic(msg string) *Error {
 		msg:     msg,
 		stack:   stack,
 		ErrType: PANIC,
+		JSON:    false,
 	}
 }
+
+//Trả về mã lỗi HTTP error, thường áp dụng khi trả về request đến REST API
 func (error *Error) StatusCode(statusCode int) *Error {
 	error.Code = statusCode
 	return error
 }
+
+//Lỗi trả về dạng JSON reponse bao gồm status code mặc định 500
+func (error *Error) EnableJSON() *Error {
+	error.JSON = true
+	if error.Code == 0 {
+		error.Code = 500 //Internal server error by default
+	}
+	return error
+}
+
+//Kiểm tra xem có phải là lỗi hệ thống
 func (error *Error) IsSysError() bool {
 	return error.ErrType == SYSERROR
 }
 
+//Kiểm tra xem có phải là lỗi nghiêm trọng
 func (error *Error) IsPanic() bool {
 	return error.ErrType == PANIC
 }
 
 //----- Hết đoạn code Cường bổ xung
-
-func New(msg string) *Error {
-	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
-	return &Error{
-		global:  stack.isGlobal(),
-		msg:     msg,
-		stack:   stack,
-		ErrType: ERROR,
-	}
-}
 
 // Errorf creates a new root error with a formatted message.
 func Errorf(format string, args ...interface{}) error {
