@@ -2,41 +2,147 @@
 
 **Whole source code of this package is credited to rotisserie/eris.**
 
-Ưu điểm lớn nhất của [rotisserie/eris](https://github.com/rotisserie/eris) đó là lỗi bao gồm cả stack trace giúp lập trình viên nhanh chóng tìm lỗi.
+Ưu điểm lớn nhất của [rotisserie/eris](https://github.com/rotisserie/eris) đó là lỗi bao gồm cả stack trace giúp lập trình viên nhanh chóng tìm lỗi. Những gì tôi bổ xung thêm để ở file [cuong.go](cuong.go)
+
 ## Hướng dẫn sử dụng
 ### 1. Cài đặt package
 ```
 go get -u github.com/TechMaster/eris
 ```
 
-### 2. Tạo eris Error
-
-#### 2.1 Tạo một lỗi cấp độ Error
+### 2. Sử dụng eris
+#### 2.0 Tạo một cảnh báo WARNING
+Lỗi WARNING chỉ cần thông báo cho end user là được, không cần in ra console, không cần log ra file
+Ví dụ:
+- Người dùng nhập sai passwod quá 3 lần
+- Đăng nhập lỗi
+- Không đủ quyền truy cập
+- Không tìm thấy một quyển sách người dùng mong muốn
 ```go
-//Tạo một lỗi, thêm HTTP status code, trrar
-func Bar() error {
-	return eris.New("Không tìm thấy bản ghi trong CSDL").StatusCode(404).EnableJSON()
+return eris.Warning("Không tìm thấy sách trong CSDL")
+```
+#### 2.1 Tạo một lỗi cấp độ Error
+Lỗi Error là lỗi nghiệp vụ, một chu trình nào đó bị sai, cần log ra terminal, có thể ghi log file...
+```go
+//Tạo một lỗi, thêm HTTP status code, trả về JSON
+return eris.New("Không tìm thấy bản ghi trong CSDL").StatusCode(404).EnableJSON()
+```
+
+#### 2.2 Tạo System Error
+System Error, lỗi hệ thống, cần in ra màn hình console và ghi ra log file. Ví System Error
+- Mất kết nối tạm thời đến dịch vụ thứ 3
+- Không đăng nhập được bằng Gmail hoặc GitHub
+- Ổ cứng chứa ảnh đã hết chỗ, không thể upload được ảnh
+- Không gọi được API Google Analytics
+
+Việc in ra console và ghi log file để lập trình truy lại để xử lý
+```go
+return eris.SysError("Failed to connect Redis")
+```
+
+#### 2.3 Lỗi rất rất nghiêm trọng, hệ thống sập ngay tức thì
+Với lỗi Panic cần xuất ra console, log ra file. Nếu không ```EnableJSON()``` có nghĩa lỗi này sẽ được trả về trang báo lỗi server side rendering error page.
+```go
+return eris.Panic("Server is down")
+```
+#### 2.4 Tạo eris từ một error khác
+`SetType(eris.SYSERROR)` để đặt cấp độ báo lỗi
+```go
+if err := connectDB(connStr); err != nil {
+	return eris.NewFromMsg(err, "Unable to connect DB").SetType(eris.SYSERROR)
 }
 ```
+hoặc không cần bổ xung message, đặt cấp độ WARNING
+```go
+if err := connectDB(connStr); err != nil {
+	return eris.New(err).SetType(eris.WARNING)
+}
+```
+#### 2.5 Lỗi phải trả về JSON bằng `.EnableJSON()`
+```go
+return eris.Warning("Không tìm được sách").StatusCode(404).EnableJSON()
+```
+
+#### 2.6 Đặt lại cấp độ lỗi
+```go
+eris.NewFromMsg(err, "Unable to connect DB").SetType(eris.SYSERROR)
+```
+
+#### 2.7 Thêm dữ liệu để thông báo lỗi chi tiết hơn
+```go
+data := map[string]interface{}{
+	"host":  "192.168.1.1",
+	"port":  8008,
+	"roles": []string{"admin", "editor", "user"},
+}
+
+return eris.New("Unable connect to login").SetData(data).StatusCode(fiber.StatusUnauthorized).EnableJSON()
+```
+
+Đoạn xử lý lỗi JSON sẽ như sau:
+```go
+switch e := err.(type) {
+	case *eris.Error:
+		handleErisError(e, ctx)
+		if e.JSON { //Có trả về báo lỗi dạng JSON cho REST API request không?
+			if e.Data == nil {
+				return ctx.Status(e.Code).JSON(e.Error())
+			} else {
+				errorBody := map[string]interface{}{
+					"error": e.Error(),
+					"data":  e.Data,
+				}
+				return ctx.Status(e.Code).JSON(errorBody) //Trả về mô tả và thông tin bổ xung
+			}
+		}
+	default:
+	//Do other
+}
+```
+
+
 
 
 
 ### 3. Xử lý lỗi eris Error
-Kiểm tra lỗi trả về có kiểu là eris Error không
 ```go
-var statusCode = 500
-if e, ok := err.(*eris.Error); ok {
-	handleEris(e)
-	if e.Code > 0 { // Mặc định là 500, nếu e.Code > 0 thì gán vào statusCode
-		statusCode = e.Code
-	}
-}
-```
+// Chuyên xử lý các err mà handler trả về
+func CustomErrorHandler(ctx *fiber.Ctx, err error) error {
+	var statusCode = 500
 
-Hàm xử lý lỗi Eris
-```go
+	switch e := err.(type) {
+	case *eris.Error:
+		handleErisError(e, ctx)
+		if e.JSON { //Có trả về báo lỗi dạng JSON cho REST API request không?
+			if e.Data == nil {
+				return ctx.Status(e.Code).JSON(e.Error())
+			} else {
+				errorBody := map[string]interface{}{
+					"error": e.Error(),
+					"data":  e.Data,
+				}
+				return ctx.Status(e.Code).JSON(errorBody)
+			}
+		}
+	case *fiber.Error:
+		statusCode = e.Code
+		fmt.Println(err.Error())
+	default:
+		fmt.Println(err.Error())
+	}
+	//Server side error page rendering : tạo trang web báo lỗi, không áp dụng cho REST API request
+	if err = ctx.Render("error/error", fiber.Map{
+		"ErrorMessage": err.Error(),
+		"StatusCode":   statusCode,
+	}); err != nil {
+		return ctx.Status(500).SendString("Internal Server Error")
+	}
+
+	return nil
+}
+
 //Hàm chuyên xử lý Eris Error có Stack Trace
-func handleEris(err *eris.Error) {
+func handleErisError(err *eris.Error, ctx *fiber.Ctx) {
 	formattedStr := eris.ToCustomString(err, eris.StringFormat{
 		Options: eris.FormatOptions{
 			InvertOutput: true, // flag that inverts the error output (wrap errors shown first)
@@ -59,124 +165,5 @@ func handleEris(err *eris.Error) {
 	} else {
 		fmt.Println(formattedStr)
 	}
-}
-```
-
-## Cường đã tạo ra những thay đổi sau đây
-### 1. Đổi `rootError` thành `Error`
-```go
-type rootError struct {
-	global bool   // flag indicating whether the error was declared globally
-	msg    string // root error message
-	ext    error  // error type for wrapping external errors
-	stack  *stack // root error stack trace
-}
-```
-
-```go
-type Error struct {
-	global  bool      // flag indicating whether the error was declared globally
-	msg     string    // root error message
-	ext     error     // error type for wrapping external errors
-	stack   *stack    // root error stack trace
-	ErrType ErrorType //Loại lỗi. Cường bổ xung
-	Code    int       // HTTP Status code. Cường bổ xung
-}
-```
-
-### 2. Thêm code vào eris.go
-
-```go
-type ErrorType int
-
-const (
-	WARNING  ErrorType = iota + 1 //Cảnh báo, ứng dụng vẫn chạy được
-	ERROR                         //Lỗi, cần báo cho end user, log lỗi ra console
-	SYSERROR                      //Lỗi hệ thống, báo cho end user Internal Server Error, log lỗi ra console và file
-	PANIC                         //Lỗi nghiêm trọng, báo cho end user Internal Server Error, log lỗi ra console và file, thoát ứng dụng
-)
-
-type Error struct {
-	global  bool      // flag indicating whether the error was declared globally
-	msg     string    // root error message
-	ext     error     // error type for wrapping external errors
-	stack   *stack    // root error stack trace
-	ErrType ErrorType //Loại lỗi. Cường bổ xung
-	Code    int       // HTTP Status code. Cường bổ xung
-}
-
-func Warning(msg string) *Error {
-	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
-	return &Error{
-		global:  stack.isGlobal(),
-		msg:     msg,
-		stack:   stack,
-		ErrType: WARNING,
-	}
-}
-
-func SysError(msg string) *Error {
-	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
-	return &Error{
-		global:  stack.isGlobal(),
-		msg:     msg,
-		stack:   stack,
-		ErrType: SYSERROR,
-	}
-}
-
-func Panic(msg string) *Error {
-	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
-	return &Error{
-		global:  stack.isGlobal(),
-		msg:     msg,
-		stack:   stack,
-		ErrType: PANIC,
-	}
-}
-func (error *Error) StatusCode(statusCode int) *Error {
-	error.Code = statusCode
-	return error
-}
-func (error *Error) IsSysError() bool {
-	return error.ErrType == SYSERROR
-}
-
-func (error *Error) IsPanic() bool {
-	return error.ErrType == PANIC
-}
-```
-
-### 3. Thêm trường Skip vào FormatOptions ở format.go
-
-```go
-type FormatOptions struct {
-	InvertOutput bool // Flag that inverts the error output (wrap errors shown first).
-	WithTrace    bool // Flag that enables stack trace output.
-	InvertTrace  bool // Flag that inverts the stack trace output (top of call stack shown first).
-	WithExternal bool // Flag that enables external error output.
-	Skip         int  // Cuong: Bỏ bớt một số hàm đầu tiên
-}
-```
-
-Vừa sửa hàm này để bỏ qua Skip phương thức trong Stack Trace chủ yế
-```go
-func (err *ErrRoot) formatStr(format StringFormat) string {
-	str := err.Msg + format.MsgStackSep
-	if format.Options.WithTrace {
-		stackArr := err.Stack.format(format.StackElemSep, format.Options.InvertTrace)
-    // Cường thêm để bỏ qua Skip phần tử cuối cùng trong Stack Trace
-		if len(stackArr) > format.Options.Skip+1 {
-			stackArr = stackArr[:len(stackArr)-format.Options.Skip]
-		}
-
-		for i, frame := range stackArr {
-			str += format.PreStackSep + frame
-			if i < len(stackArr)-1 {
-				str += format.ErrorSep
-			}
-		}
-	}
-	return str
 }
 ```
