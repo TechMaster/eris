@@ -74,6 +74,7 @@ func NewFrom(err error) *Error {
 	return New(err.Error())
 }
 
+//Bao lấy một error và thêm báo lỗi
 func NewFromMsg(err error, msg string) *Error {
 	return New(err.Error() + " : " + msg)
 }
