@@ -70,6 +70,19 @@ func Panic(msg string) *Error {
 	}
 }
 
+func NewFrom(err error) *Error {
+	return New(err.Error())
+}
+
+func NewFromMsg(err error, msg string) *Error {
+	return New(err.Error() + " : " + msg)
+}
+
+func (error *Error) SetType(errType ErrorType) *Error {
+	error.ErrType = errType
+	return error
+}
+
 //Trả về mã lỗi HTTP error, thường áp dụng khi trả về request đến REST API
 func (error *Error) StatusCode(statusCode int) *Error {
 	error.Code = statusCode
