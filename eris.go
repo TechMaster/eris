@@ -67,8 +67,8 @@ func (error *Error) IsPanic() bool {
 }
 
 //----- Hết đoạn code Cường bổ xung
-// New creates a new root error with a static message.
-func New(msg string) error {
+
+func New(msg string) *Error {
 	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
 	return &Error{
 		global:  stack.isGlobal(),

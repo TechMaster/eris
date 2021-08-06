@@ -2,6 +2,7 @@
 
 **Whole source code of this package is credited to rotisserie/eris.**
 
+Ưu điểm lớn nhất của [rotisserie/eris](https://github.com/rotisserie/eris) đó là lỗi bao gồm cả stack trace giúp lập trình viên nhanh chóng tìm lỗi.
 ## Hướng dẫn sử dụng
 ### 1. Cài đặt package
 ```
