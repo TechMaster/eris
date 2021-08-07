@@ -113,12 +113,20 @@ func (error *Error) SetData(data map[string]interface{}) *Error {
 	return error
 }
 
-//Kiểm tra xem có phải là lỗi hệ thống
-func (error *Error) IsSysError() bool {
-	return error.ErrType == SYSERROR
+//Truyền vào một error bất kỳ kiểm tra xem có phải là lỗi hệ thống
+func IsSysError(err error) bool {
+	if e, ok := err.(*Error); ok && e.ErrType == SYSERROR {
+		return true
+	} else {
+		return false
+	}
 }
 
-//Kiểm tra xem có phải là lỗi nghiêm trọng
-func (error *Error) IsPanic() bool {
-	return error.ErrType == PANIC
+//Truyền vào một error bất kỳ kiểm tra xem có phải là lỗi nghiêm trọng
+func IsPanic(err error) bool {
+	if e, ok := err.(*Error); ok && e.ErrType == PANIC {
+		return true
+	} else {
+		return false
+	}
 }

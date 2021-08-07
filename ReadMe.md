@@ -10,8 +10,34 @@
 go get -u github.com/TechMaster/eris
 ```
 
-### 2. Sử dụng eris
-Căn bản về xử lỗi. Một lỗi đầy đủ cần có:
+### 2. Tạo lỗi - bắt lỗi - xử lý lỗi - báo  lỗi - log lỗi
+Lập trình viên Golang cần chú ý
+1. Golang không có try catch exception, chỉ có hàm trả về lỗi
+2. Một khi đã viết hàm Go bạn cần phải quyết định hàm này có trả về lỗi hay không?  90% hàm phải trả về lỗi
+3. Lỗi được tạo ra để xử lý và cần phải được xử lý lỗi đến nơi đến trốn. Tuyệt đối không được dập lỗi, lờ đi.
+4. Nếu một hàm trả về nhiều tham số, thì tham số lỗi luôn để cuối cùng
+	```go
+	func Foo() (result string, count int, err error)
+	```
+4. Bất kỳ lỗi nào trong Golang đều phải tuân thủ interface
+	```go
+	type error interface {
+    	Error() string
+	}	
+	```
+
+#### 2.1 Các bước làm việc với lỗi
+1. Define function return error: Định nghĩa hàm trả về lỗi
+2. Create error: Tạo error phù hợp
+3. Handle error: Xử lý lỗi gồm có kiểm tra loại lỗi, mức độ lỗi, mã lỗi
+4. Report error: Báo lỗi cho client, cần quyết định nội dung chi tiết đến mức nào và kiểu báo lỗi. Có hai kiểu báo lỗi:
+	- Ứng dụng Server Side Rendering thì trả về trang báo lỗi error page
+	- Ứng dụng Client Side, Mobile thì trả về JSON error cùng HTTP status code 
+5. Log error: Lỗi nghiêm trọng cần được in ra màn hình console và ghi ra file. Với lỗi panic bắt buộc dừng chương trình bằng hàm `panic("error message")`
+
+
+#### 2.2 Căn bản về lỗi
+Một lỗi đầy đủ cần có:
 1. Mô tả lỗi
 2. Cấp độ lỗi: WARNING, ERROR, SYSERROR, PANIC quyết định cách thức dev báo cáo lỗi và log lỗi
 3. Stack Trace danh sách các hàm gọi nhau gây ra lỗi
@@ -32,7 +58,16 @@ Không xử lý lỗi đúng dẫn đến vấn đề gì?
 2. Lập trình viên không dò vết (không xem được Stack Trace của lỗi), vì lỗi qua chung chung, khó hiểu
 3. Hệ thống sập vì lỗi không được xử lý đúng, chương trình chạy tiếp với biến rỗng (nil)
 
-#### 2.0 Tạo một cảnh báo WARNING
+#### 2.3 Log lỗi
+Cần phân biệt rõ báo lỗi và log lỗi. Báo lỗi dùng để báo cho client, người dùng cuối. Còn log lỗi là cho hệ thống nội bộ và lập trình viên debug, fix lỗi. Do đó Log lỗi phải chi tiết đầy đủ, cần gồm cả stack trace và thông tin hoàn cảnh lỗi phát sinh. Ngược lại báo lỗi cần ưu tiên sự thân thiện với người dùng.
+
+Log lỗi sẽ có 2 cấp độ:
+1. In ra màn hình console
+2. Ghi vào file log
+
+Bạn có thể sử dụng các hàm thông thường của Golang hay một thư viện như Uber Zap để log lỗi. Tránh viết logic log lỗi ở mọi nơi khiến code vừa dài, mà vừa phụ thuộc chặt (tightly coupling) vào một thư viện báo lỗi bên thứ ba. Nên tận dụng một hàm xử lý lỗi chung gắn với ứng dụng. Muốn được như vậy, ta phải tuần tự trả về lỗi từ hàm con ra hàm cha, từ hàm cha ra hàm ông, cụ, kỵ...
+### 3. Sử dụng eris
+#### 3.0 Tạo một cảnh báo WARNING
 Lỗi WARNING chỉ cần thông báo cho end user là được, không cần in ra console, không cần log ra file
 Ví dụ:
 - Người dùng nhập sai passwod quá 3 lần
@@ -40,16 +75,16 @@ Ví dụ:
 - Không đủ quyền truy cập
 - Không tìm thấy một quyển sách người dùng mong muốn
 ```go
-return eris.Warning("Không tìm thấy sách trong CSDL")
+return eris.Warning("Email không hợp lệ")
 ```
-#### 2.1 Tạo một lỗi cấp độ Error
+#### 3.1 Tạo một lỗi cấp độ Error
 Lỗi Error là lỗi nghiệp vụ, một chu trình nào đó bị sai, cần log ra terminal, có thể ghi log file...
 ```go
 //Tạo một lỗi, thêm HTTP status code, trả về JSON
 return eris.New("Không tìm thấy bản ghi trong CSDL").StatusCode(404).EnableJSON()
 ```
 
-#### 2.2 Tạo System Error
+#### 3.2 Tạo System Error
 System Error, lỗi hệ thống, cần in ra màn hình console và ghi ra log file. Ví System Error
 - Mất kết nối tạm thời đến dịch vụ thứ 3
 - Không đăng nhập được bằng Gmail hoặc GitHub
@@ -61,12 +96,26 @@ Việc in ra console và ghi log file để lập trình truy lại để xử l
 return eris.SysError("Failed to connect Redis")
 ```
 
-#### 2.3 Lỗi rất rất nghiêm trọng, hệ thống sập ngay tức thì
-Với lỗi Panic cần xuất ra console, log ra file. Nếu không ```EnableJSON()``` có nghĩa lỗi này sẽ được trả về trang báo lỗi server side rendering error page.
+#### 3.3 Lỗi rất nghiêm trọng `panic`
+Với lỗi Panic cần xuất ra console, log ra file và gọi hàm panic của golang
 ```go
 return eris.Panic("Server is down")
 ```
-#### 2.4 Tạo eris từ một error khác
+
+Xử lý lỗi
+```go
+if err := connectDB(); err != nil {
+	if isPanic(err) {
+		panic(err.Error())
+	} else {
+		return err
+	}
+} else {
+	return nil
+}
+```
+
+#### 3.4 Tạo eris từ một error khác: `New` - `NewFromMsg`
 `SetType(eris.SYSERROR)` để đặt cấp độ báo lỗi
 ```go
 if err := connectDB(connStr); err != nil {
@@ -79,25 +128,26 @@ if err := connectDB(connStr); err != nil {
 	return eris.New(err).SetType(eris.WARNING)
 }
 ```
-#### 2.5 Lỗi phải trả về JSON bằng `.EnableJSON()`
+#### 3.5 Lỗi phải trả về JSON bằng `.EnableJSON()`
 ```go
 return eris.Warning("Không tìm được sách").StatusCode(404).EnableJSON()
 ```
 
-#### 2.6 Đặt lại cấp độ lỗi
+#### 3.6 Đặt lại cấp độ lỗi `SetType`
 ```go
 eris.NewFromMsg(err, "Unable to connect DB").SetType(eris.SYSERROR)
 ```
 
-#### 2.7 Thêm dữ liệu để thông báo lỗi chi tiết hơn
-```go
-data := map[string]interface{}{
-	"host":  "192.168.1.1",
-	"port":  8008,
-	"roles": []string{"admin", "editor", "user"},
-}
+#### 3.7 Thêm dữ liệu để thông báo lỗi chi tiết hơn `SetData`
 
-return eris.New("Unable connect to login").SetData(data).StatusCode(fiber.StatusUnauthorized).EnableJSON()
+```go
+return eris.Panic("Failed to connect to Postgresql").
+		SetData(
+			map[string]interface{}{
+				"host": "localhost",
+				"port": "5432",
+			},
+		)
 ```
 
 Đoạn xử lý lỗi JSON sẽ như sau:
@@ -121,11 +171,26 @@ switch e := err.(type) {
 }
 ```
 
+### 4. Xử lý lỗi eris Error
+#### 4.1 Kiểm tra kiểu lỗi và ép kiểu
+Ứng dụng Golang có thể có nhiều loại lỗi. Do đó cần kiểm tra kiểu khi bạn làm với eris errorr.
+```go
+func isPanic(err error) bool {
+	if e, ok := err.(*eris.Error); ok && e.ErrType == eris.PANIC {
+		return true
+	} else {
+		return false
+	}
+}
+```
+Eris cung cấp sẵn 2 hàm kiểm tra
+```go
+func IsSysError(err error) bool
+func IsPanic(err error) bool
+```
 
-
-
-
-### 3. Xử lý lỗi eris Error
+#### 4.2 Hàm hứng lỗi cho cả ứng dụng web
+Hầu hết các go web framework đều cho phép viết một hàm chung để xử lý tất cả các loại lỗi. Bạn nên tận dùng tính năng này để xử lý lỗi thay viết phải viết logic xử lý lỗi ở nhiều nơi khác nhau.
 ```go
 // Chuyên xử lý các err mà handler trả về
 func CustomErrorHandler(ctx *fiber.Ctx, err error) error {
