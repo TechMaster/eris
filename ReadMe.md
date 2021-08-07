@@ -1,10 +1,40 @@
 # Cải tiến từ thư viện [https://github.com/rotisserie/eris](https://github.com/rotisserie/eris)
 
-**Whole source code of this package is credited to rotisserie/eris.**
+## Ưu điểm bắt lỗi, xử lý lỗi với [TechMaster/eris](https://github.com/TechMaster/eris)
+**Noticed: I customized code from rotisserie/eris.**
 
-Ưu điểm lớn nhất của [rotisserie/eris](https://github.com/rotisserie/eris) đó là lỗi bao gồm cả stack trace giúp lập trình viên nhanh chóng tìm lỗi. Những gì tôi bổ xung thêm để ở file [cuong.go](cuong.go)
+Ưu điểm lớn nhất của [rotisserie/eris](https://github.com/rotisserie/eris) đó là lỗi bao gồm cả stack trace giúp lập trình viên nhanh chóng tìm lỗi. Những tính năng bổ xung viết ở [cuong.go](cuong.go):
 
-## Hướng dẫn sử dụng
+1. Thêm các trường để lập trình bổ xung 
+	```go
+	ErrType ErrorType  //Loại lỗi: WARNING, ERROR, SYSERROR, PANIC
+	Code    int        //HTTP Status code
+	JSON    bool       //true trả JSON cho REST request, false hiển thị trang báo lỗi
+	Data    map[string]interface{} //Chứa thông tin bổ xung
+	```
+2. Tạo lỗi bằng nỗi chuỗi các hàm
+
+	```go
+	return new eris.SysError("Cannot connect DB").StatusCode(500).EnableJSON().SetData(
+		map[string]interface{}{
+				"host": "localhost",
+				"port": "5432",
+				"db"  : "inventory",
+		},
+	)
+	```
+3. Bao lấy lỗi thông thường khác bằng `eris.NewFrom` và `eris.NewFromMsg`
+4. Kiểm tra mức độ lỗi bằng `eris.IsSysErr` và `eris.IsPanic`
+5. Cấu hình để loại bỏ bớt vài hàm dưới cùng StackTrace. Xem [format.go](format.go)
+   ```go
+	 type FormatOptions struct {
+		...
+		Skip int  //Số hàm dưới cùng stack trace sẽ bỏ qua không cần in
+	}
+	```
+
+
+## Hướng dẫn sử dụng eris
 ### 1. Cài đặt package
 ```
 go get -u github.com/TechMaster/eris
@@ -102,10 +132,11 @@ Với lỗi Panic cần xuất ra console, log ra file và gọi hàm panic củ
 return eris.Panic("Server is down")
 ```
 
-Xử lý lỗi
+Kiểm tra xem có phải lỗi Panic không
 ```go
 if err := connectDB(); err != nil {
-	if isPanic(err) {
+	if eris.IsPanic(err) { //Hãy dùng hàm có sẵn trong eris
+		//Log ra file trước rồi hãng gọi panic
 		panic(err.Error())
 	} else {
 		return err
@@ -170,7 +201,6 @@ switch e := err.(type) {
 	//Do other
 }
 ```
-
 ### 4. Xử lý lỗi eris Error
 #### 4.1 Kiểm tra kiểu lỗi và ép kiểu
 Ứng dụng Golang có thể có nhiều loại lỗi. Do đó cần kiểm tra kiểu khi bạn làm với eris errorr.
