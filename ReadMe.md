@@ -3,7 +3,7 @@
 ## Ưu điểm bắt lỗi, xử lý lỗi với [TechMaster/eris](https://github.com/TechMaster/eris)
 **Noticed: I customized code from rotisserie/eris.**
 
-Ưu điểm lớn nhất của [rotisserie/eris](https://github.com/rotisserie/eris) đó là lỗi bao gồm cả stack trace giúp lập trình viên nhanh chóng tìm lỗi. Những tính năng bổ xung viết ở [cuong.go](cuong.go):
+Ưu điểm lớn nhất của [rotisserie/eris](https://github.com/rotisserie/eris) đó là lỗi bao gồm cả stack trace giúp lập trình viên nhanh chóng tìm lỗi. Những tính năng bổ xung viết ở [cuong.go](cuong.go). Ví dụ chi tiết sử dụng TechMaster/eris các trường hợp ở đây [demofiber](https://github.com/TechMaster/demofiber)
 
 1. Thêm các trường để lập trình bổ xung 
 	```go
