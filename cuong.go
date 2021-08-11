@@ -75,6 +75,17 @@ func NewFrom(err error) *Error {
 	}
 }
 
+func WrapFrom(err error, skip int) *Error {
+	stack := callers(skip) // callers(3) skips this method, stack.callers, and runtime.Callers
+	return &Error{
+		global:  stack.isGlobal(),
+		msg:     err.Error(),
+		stack:   stack,
+		ErrType: ERROR,
+		JSON:    false,
+	}
+}
+
 //Bao lấy một error và thêm báo lỗi
 func NewFromMsg(err error, msg string) *Error {
 	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
@@ -95,6 +106,30 @@ func (error *Error) SetType(errType ErrorType) *Error {
 //Trả về mã lỗi HTTP error, thường áp dụng khi trả về request đến REST API
 func (error *Error) StatusCode(statusCode int) *Error {
 	error.Code = statusCode
+	return error
+}
+
+//Gán mã lỗi khi request gửi lên không hợp lệ
+func (error *Error) BadRequest() *Error {
+	error.Code = 400
+	return error
+}
+
+//Gán mã lỗi khi người dùng không được phép truy cập
+func (error *Error) UnAuthorized() *Error {
+	error.Code = 401
+	return error
+}
+
+//Không tìm thấy một record theo yêu cầu có thể trả về lỗi này
+func (error *Error) NotFound() *Error {
+	error.Code = 404
+	return error
+}
+
+//Dành cho hầu hết lỗi phát sinh phía server
+func (error *Error) InternalServerError() *Error {
+	error.Code = 500
 	return error
 }
 
