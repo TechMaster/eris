@@ -264,7 +264,7 @@ func handleErisError(err *eris.Error, ctx *fiber.Ctx) {
 			InvertOutput: true, // flag that inverts the error output (wrap errors shown first)
 			WithTrace:    true, // flag that enables stack trace output
 			InvertTrace:  true, // flag that inverts the stack trace output (top of call stack shown first)
-			Skip:         3,    // Bỏ qua 3 dòng lệnh cuối cùng trong Stack
+			Top:          3,    // Giữ 3 dòng lệnh đỉnh trong Stack
 		},
 		MsgStackSep:  "\n",  // separator between error messages and stack frame data
 		PreStackSep:  "\t",  // separator at the beginning of each stack frame

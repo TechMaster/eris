@@ -10,7 +10,6 @@ type FormatOptions struct {
 	WithTrace    bool // Flag that enables stack trace output.
 	InvertTrace  bool // Flag that inverts the stack trace output (top of call stack shown first).
 	WithExternal bool // Flag that enables external error output.
-	Skip         int  // Cuong: Bỏ bớt một số hàm đầu tiên
 	Top          int  // Cuong: Chỉ in ra Top những hàm đầu tiên
 }
 
@@ -208,9 +207,7 @@ func (err *ErrRoot) formatStr(format StringFormat) string {
 		stackArr := err.Stack.format(format.StackElemSep, format.Options.InvertTrace)
 
 		//Cường sửa đoạn này để rút gọn stack trace sẽ hiển thị
-		if len(stackArr) > format.Options.Skip {
-			stackArr = stackArr[:len(stackArr)-format.Options.Skip]
-		} else if len(stackArr) > format.Options.Top {
+		if len(stackArr) > format.Options.Top {
 			stackArr = stackArr[:format.Options.Top]
 		}
 		//--- Hết đoạn Cường bổ xung
