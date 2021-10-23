@@ -14,9 +14,8 @@ type Error struct {
 	msg     string                 // root error message
 	ext     error                  // error type for wrapping external errors
 	stack   *stack                 // root error stack trace
-	ErrType ErrorType              //Loại lỗi. Cường bổ xung
+	ErrType ErrorType              // Loại lỗi. Cường bổ xung
 	Code    int                    // HTTP Status code. Cường bổ xung
-	JSON    bool                   // true if error will resonse as JSON for REST request, false to render error page at server side
 	Data    map[string]interface{} //Thông tin bổ xung
 }
 
@@ -27,7 +26,6 @@ func Warning(msg string) *Error {
 		msg:     msg,
 		stack:   stack,
 		ErrType: WARNING,
-		JSON:    false, //server side rendered error page not return JSON error
 	}
 }
 
@@ -38,7 +36,6 @@ func New(msg string) *Error {
 		msg:     msg,
 		stack:   stack,
 		ErrType: ERROR,
-		JSON:    false,
 	}
 }
 
@@ -49,7 +46,6 @@ func SysError(msg string) *Error {
 		msg:     msg,
 		stack:   stack,
 		ErrType: SYSERROR,
-		JSON:    false,
 	}
 }
 
@@ -60,7 +56,6 @@ func Panic(msg string) *Error {
 		msg:     msg,
 		stack:   stack,
 		ErrType: PANIC,
-		JSON:    false,
 	}
 }
 
@@ -71,7 +66,6 @@ func NewFrom(err error) *Error {
 		msg:     err.Error(),
 		stack:   stack,
 		ErrType: ERROR,
-		JSON:    false,
 	}
 }
 
@@ -82,7 +76,6 @@ func WrapFrom(err error, skip int) *Error {
 		msg:     err.Error(),
 		stack:   stack,
 		ErrType: ERROR,
-		JSON:    false,
 	}
 }
 
@@ -94,7 +87,6 @@ func NewFromMsg(err error, msg string) *Error {
 		msg:     err.Error() + " : " + msg,
 		stack:   stack,
 		ErrType: ERROR,
-		JSON:    false,
 	}
 }
 
@@ -130,15 +122,6 @@ func (error *Error) NotFound() *Error {
 //Dành cho hầu hết lỗi phát sinh phía server
 func (error *Error) InternalServerError() *Error {
 	error.Code = 500
-	return error
-}
-
-//Lỗi trả về dạng JSON reponse bao gồm status code mặc định 500
-func (error *Error) EnableJSON() *Error {
-	error.JSON = true
-	if error.Code == 0 {
-		error.Code = 500 //Internal server error by default
-	}
 	return error
 }
 
