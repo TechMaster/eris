@@ -1,5 +1,7 @@
 package eris
 
+import "github.com/TechMaster/core/config"
+
 type ErrorType int //Cấp độ lỗi
 
 const (
@@ -82,12 +84,17 @@ func WrapFrom(err error, skip int) *Error {
 //Bao lấy một error và thêm báo lỗi
 func NewFromMsg(err error, msg string) *Error {
 	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
-	return &Error{
+	var eris_err = Error{
 		global:  stack.isGlobal(),
-		msg:     err.Error() + " : " + msg,
 		stack:   stack,
 		ErrType: ERROR,
 	}
+	if config.IsAppInDebugMode() {
+		eris_err.msg = err.Error()
+	} else {
+		eris_err.msg = msg
+	}
+	return &eris_err
 }
 
 func (error *Error) SetType(errType ErrorType) *Error {
