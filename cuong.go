@@ -1,6 +1,9 @@
 package eris
 
-import "github.com/TechMaster/core/config"
+import (
+	"github.com/TechMaster/core/config"
+	"github.com/spf13/viper"
+)
 
 type ErrorType int //Cấp độ lỗi
 
@@ -92,6 +95,9 @@ func NewFromMsg(err error, msg string) *Error {
 	if config.IsAppInDebugMode() {
 		eris_err.msg = err.Error()
 	} else {
+		if viper.GetString("database.database") == "postgres" {
+			eris_err.msg = err.Error()
+		}
 		eris_err.msg = msg
 	}
 	return &eris_err
