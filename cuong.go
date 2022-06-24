@@ -97,8 +97,9 @@ func NewFromMsg(err error, msg string) *Error {
 	} else {
 		if viper.GetString("database.database") == "postgres" {
 			eris_err.msg = err.Error()
+		} else {
+			eris_err.msg = msg
 		}
-		eris_err.msg = msg
 	}
 	return &eris_err
 }
